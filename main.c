@@ -42,6 +42,7 @@ int main(int argc, char *argv[]) {
   pthread_t recvThread;
   pthread_create(&recvThread, NULL, recvTask, (void *)port);
 
+  SetTraceLogLevel(LOG_WARNING);
   const int screenWidth = 800;
   const int screenHeight = 450;
   InitWindow(screenWidth, screenHeight, "Data Visualizer");
