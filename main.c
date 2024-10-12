@@ -1,5 +1,5 @@
 
-#include "buffer.h"
+#include "buffer/include/buffer/io_buffer.h"
 #include <assert.h>
 #include <errno.h>
 #include <netdb.h>
@@ -18,7 +18,7 @@
 #include "raygui.h"
 
 #define DATA_SIZE (4096 * sizeof(float))
-Buffer *data;
+IOBuffer *data;
 
 #define MAX_SCREEN_DATA_SIZE (128 * sizeof(float))
 
@@ -36,7 +36,7 @@ char const *get_port_from_argv(int argc, char *argv[],
 int main(int argc, char *argv[]) {
   int const fps = get_fps_from_argv(argc, argv, DEFAULT_FPS);
   char const *port = get_port_from_argv(argc, argv, DEFAULT_PORT);
-  data = Buffer_create(DATA_SIZE);
+  data = IOBuffer_create(DATA_SIZE);
   assert(data);
 
   pthread_t recvThread;
@@ -58,8 +58,15 @@ int main(int argc, char *argv[]) {
   {
     size_t screen_data_size = decode_screen_data_size(screen_data_size_slider);
     float delta = screenWidth / ((float)screen_data_size / sizeof(float));
-    size_t read = Buffer_nextAsync(data, internalBuffer, screen_data_size);
-    //  Draw
+    BufferError err =
+        IOBuffer_readAsync(data, internalBuffer, screen_data_size);
+    if (err.errorCode == BUFFER_ERROR_OK) {
+      printf("read %lu bytes\n", err.result);
+    } else {
+      printf("read %lu bytes\n", err.result);
+      printf("ERROR %d\n", err.errorCode);
+    }
+    //   Draw
     BeginDrawing();
 
     ClearBackground(RAYWHITE);
@@ -119,7 +126,12 @@ void *recvTask(void *args) {
       *(uint32_t *)(internalBuffer + i) =
           ntohl(*(uint32_t *)(internalBuffer + i));
     }
-    Buffer_write(data, internalBuffer, read);
+    BufferError err = IOBuffer_write(data, internalBuffer, read);
+    // if (err.errorCode == BUFFER_ERROR_OK) {
+    //   printf("recv %lu bytes\n", err.result);
+    // } else {
+    //   printf("ERROR %d\n", err.errorCode);
+    // }
   }
   return NULL;
 }
