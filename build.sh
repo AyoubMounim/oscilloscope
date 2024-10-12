@@ -102,7 +102,7 @@ done
 set_up
 
 gcc -ggdb main.c -lraylib -lm -o $BUILD_DIR/oscilloscope
-go build -o $BUILD_DIR/signal-generator ./signal_generator.go
+go build -o $BUILD_DIR/signal-generator signal_generator/signal_generator.go
 
 graceful_exit
 

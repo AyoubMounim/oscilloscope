@@ -6,14 +6,15 @@ import "math/rand"
 import "time"
 import "net"
 import "encoding/binary"
-import "bytes"
 import "math"
 
-var deltaT time.Duration = 10 * time.Microsecond
+func normalizeFreq(freq_Hz float64, deltaT_seconds float64) float64 {
+	_, normFreq := math.Modf(freq_Hz * deltaT_seconds)
+	return normFreq
+}
 
-func sinus(time_seconds float64) float32 {
-	freq_Hz := 1000.
-	alpha := 2 * math.Pi * freq_Hz * time_seconds
+func sineWave(normalizedFreq float64, n int64) float32 {
+	alpha := 2 * math.Pi * normalizedFreq * float64(n)
 	normalized_alpha := alpha - 2*math.Pi*(math.Floor(alpha/2*math.Pi))
 	res := float32(math.Sin(normalized_alpha))
 	return res
@@ -44,34 +45,33 @@ func random() float32 {
 
 func main() {
 	ipFlag := flag.String("ip", "127.0.0.1:6969", "target ip address in the format: x.x.x.x:port")
+	protoFlag := flag.String("proto", "tcp", "ip transport protocol to use: \"tcp\" or \"udp\"")
+	sineFlag := flag.Float64("sine", 1, "Sine wave frequency in Hz")
+	deltaTFlag := flag.Int64("deltaT", 10, "Quantized time step in microseconds")
 	flag.Parse()
-	conn, err := net.Dial("udp", *ipFlag)
+
+	conn, err := net.Dial(*protoFlag, *ipFlag)
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
-	var buf bytes.Buffer
+
+	var n int64 = 0
+	deltaT := time.Duration(*deltaTFlag * 1000)
+	normFreq := normalizeFreq(*sineFlag, float64(deltaT.Seconds()))
 	fmt.Printf("Sending data...")
-	step := 0
 	for {
 		//number := float32(0.5)
 		//number := random()
-		//number := sinus(float64(step) * deltaT.Seconds())
+		number := sineWave(normFreq, n)
 		//number := noise(float64(step) * deltaT.Seconds())
-		number := armonic(float64(step)*deltaT.Seconds(), 3)
-		err := binary.Write(&buf, binary.BigEndian, number)
+		//number := armonic(float64(step)*deltaT.Seconds(), 3)
+		err := binary.Write(conn, binary.BigEndian, number)
 		if err != nil {
 			fmt.Println(err)
 			continue
 		}
-		var data [4]byte
-		_, err = buf.Read(data[:])
-		if err != nil {
-			fmt.Println(err)
-			continue
-		}
-		conn.Write(data[:])
 		time.Sleep(deltaT)
-		step += 1
+		n += 1
 	}
 }
