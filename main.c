@@ -52,12 +52,13 @@ int main(int argc, char *argv[]) {
 
   SetTargetFPS(fps);
 
-  float screen_data_size_slider = MAX_SCREEN_DATA_SIZE;
+  float samplesPerWindow = MAX_SCREEN_DATA_SIZE / (2 * (float)sizeof(float));
+  int samplesPerWindowGuiValue = (int)samplesPerWindow;
   uint8_t internalBuffer[MAX_SCREEN_DATA_SIZE];
   memset(internalBuffer, 0, sizeof(internalBuffer));
   while (!WindowShouldClose()) // Detect window close button or ESC key
   {
-    size_t screen_data_size = decode_screen_data_size(screen_data_size_slider);
+    size_t screen_data_size = (size_t)samplesPerWindow * sizeof(float);
     float delta = screenWidth / ((float)screen_data_size / sizeof(float));
     BufferError err =
         IOBuffer_nextAsync(data, internalBuffer, screen_data_size);
@@ -66,11 +67,13 @@ int main(int argc, char *argv[]) {
 
     ClearBackground(RAYWHITE);
 
-    GuiSpinner((Rectangle){640, 40, 105, 20}, "yMax ", &yMax, 1, 10, false);
-    GuiSpinner((Rectangle){640, 70, 105, 20}, "yMin ", &yMin, -10, -1, false);
-    GuiSliderBar((Rectangle){640, 100, 105, 20}, "Boh ", NULL,
-                 &screen_data_size_slider, MAX_SCREEN_DATA_SIZE / 2.0f,
-                 MAX_SCREEN_DATA_SIZE);
+    GuiSpinner((Rectangle){680, 40, 105, 20}, "yMax ", &yMax, 1, 10, false);
+    GuiSpinner((Rectangle){680, 70, 105, 20}, "yMin ", &yMin, -10, -1, false);
+    GuiSlider((Rectangle){110, 40, 105, 20}, "SamplesPerWindow", NULL,
+              &samplesPerWindow, 1,
+              MAX_SCREEN_DATA_SIZE / (float)sizeof(float));
+    GuiValueBox((Rectangle){220, 40, 50, 20}, NULL, &samplesPerWindowGuiValue,
+                1, MAX_SCREEN_DATA_SIZE / sizeof(float), false);
 
     for (size_t i = 0; i < screen_data_size; i += sizeof(float)) {
       float d = *(float *)(internalBuffer + i);
@@ -117,10 +120,10 @@ void *recvTask(void *args) {
     size_t read = recv(s, &internalBuffer, sizeof(internalBuffer), 0);
     // printf("[UDP] - recv %d\n", ++c);
     assert(read % sizeof(float) == 0 && "receive failed");
-    for (size_t i = 0; i < read; i += sizeof(float)) {
-      *(uint32_t *)(internalBuffer + i) =
-          ntohl(*(uint32_t *)(internalBuffer + i));
-    }
+    //    for (size_t i = 0; i < read; i += sizeof(float)) {
+    //      *(uint32_t *)(internalBuffer + i) =
+    //          ntohl(*(uint32_t *)(internalBuffer + i));
+    //    }
     BufferError err = IOBuffer_write(data, internalBuffer, read);
     // if (err.errorCode == BUFFER_ERROR_OK) {
     //   printf("recv %lu bytes\n", err.result);
