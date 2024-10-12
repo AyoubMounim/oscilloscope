@@ -87,6 +87,15 @@ BufferError IOBuffer_write(IOBuffer *const self, uint8_t const *const dataSrc,
                            size_t const dataSize);
 
 /**
+ * @brief Returns size in bytes of available data in the buffer.
+ *
+ * @param[in] self: IOBuffer instance.
+ *
+ * @return If errorCode not EOF, result holds size of available data in bytes.
+ */
+BufferError IOBuffer_available(IOBuffer const *const self);
+
+/**
  * @brief Reads at most dataSize bytes from the buffer to dataDst. Caller must
  * make sure that dataDst points to enough memory space. EOF is signaled by
  * errorCode in the returned value. Blocks execution flow.

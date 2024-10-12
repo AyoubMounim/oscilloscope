@@ -60,6 +60,20 @@ void IOBuffer_destroy(IOBuffer *self) {
   return;
 }
 
+BufferError IOBuffer_available(IOBuffer const *const self) {
+  BufferError err = {.errorCode = BUFFER_ERROR_OK, .result = 0};
+  if (self->eof) {
+    err.errorCode = BUFFER_ERROR_EOF;
+    return err;
+  }
+  if (self->readPos <= self->writePos) {
+    err.result = self->writePos - self->readPos;
+  } else {
+    err.result = self->bufferSize - self->readPos + self->writePos;
+  }
+  return err;
+}
+
 BufferError IOBuffer_write(IOBuffer *const self, uint8_t const *const dataSrc,
                            size_t const dataSize) {
   BufferError err = {.result = 0, .errorCode = BUFFER_ERROR_OK};
@@ -216,12 +230,11 @@ BufferError IOBuffer_next(IOBuffer *const self, uint8_t *const dataDst,
 BufferError IOBuffer_nextAsync(IOBuffer *const self, uint8_t *const dataDst,
                                size_t const dataSize) {
   BufferError res = {.result = 0, .errorCode = BUFFER_ERROR_OK};
-  BufferError err = IOBuffer_readAsync(self, dataDst, dataSize);
-  res.errorCode = err.errorCode;
-  if (err.errorCode == BUFFER_ERROR_EOF) {
-    res.result = err.result;
-  } else if (err.errorCode == BUFFER_ERROR_OK && err.result == dataSize) {
-    res.result = dataSize;
+  BufferError available = IOBuffer_available(self);
+  if (available.result < dataSize) {
+    res.errorCode = (self->eof) ? BUFFER_ERROR_EOF : BUFFER_ERROR_OK;
+    return res;
   }
+  res = IOBuffer_readAsync(self, dataDst, dataSize);
   return res;
 }

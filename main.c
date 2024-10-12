@@ -59,13 +59,7 @@ int main(int argc, char *argv[]) {
     size_t screen_data_size = decode_screen_data_size(screen_data_size_slider);
     float delta = screenWidth / ((float)screen_data_size / sizeof(float));
     BufferError err =
-        IOBuffer_readAsync(data, internalBuffer, screen_data_size);
-    if (err.errorCode == BUFFER_ERROR_OK) {
-      printf("read %lu bytes\n", err.result);
-    } else {
-      printf("read %lu bytes\n", err.result);
-      printf("ERROR %d\n", err.errorCode);
-    }
+        IOBuffer_nextAsync(data, internalBuffer, screen_data_size);
     //   Draw
     BeginDrawing();
 
