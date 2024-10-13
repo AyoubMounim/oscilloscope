@@ -25,6 +25,11 @@ IOBuffer *data;
 #define DEFAULT_FPS 1000L
 #define DEFAULT_PORT "6969"
 
+typedef void (*renderDataFunc_t)(void const *const data,
+                                 size_t const dataLenght, float const deltaX,
+                                 int const screenWidth, int const screenHeight,
+                                 int const yMin, int const yMax);
+
 void *recvTask(void *);
 
 size_t decode_screen_data_size(float screen_data_size);
@@ -32,6 +37,19 @@ size_t decode_screen_data_size(float screen_data_size);
 int get_fps_from_argv(int argc, char *argv[], int const defaultVal);
 char const *get_port_from_argv(int argc, char *argv[],
                                char const *const defaultVal);
+
+void renderByPoints(float const *const data, size_t const dataLenght,
+                    float const deltaX, int const screenWidth,
+                    int const screenHeight, int const yMin, int const yMax);
+
+void renderByLines(float const *const data, size_t const dataLenght,
+                   float const deltaX, int const screenWidth,
+                   int const screenHeight, int const yMin, int const yMax);
+
+void renderByLinesComplex(float const *const data, size_t const dataLenght,
+                          float const deltaX, int const screenWidth,
+                          int const screenHeight, int const yMin,
+                          int const yMax);
 
 int main(int argc, char *argv[]) {
   int const fps = get_fps_from_argv(argc, argv, DEFAULT_FPS);
@@ -49,6 +67,9 @@ int main(int argc, char *argv[]) {
 
   int yMax = 1;
   int yMin = -1;
+  // renderDataFunc_t renderFunc = (renderDataFunc_t)renderByPoints;
+  // renderDataFunc_t renderFunc = (renderDataFunc_t)renderByLines;
+  renderDataFunc_t renderFunc = (renderDataFunc_t)renderByLinesComplex;
 
   SetTargetFPS(fps);
 
@@ -75,13 +96,8 @@ int main(int argc, char *argv[]) {
     GuiValueBox((Rectangle){220, 40, 50, 20}, NULL, &samplesPerWindowGuiValue,
                 1, MAX_SCREEN_DATA_SIZE / sizeof(float), false);
 
-    for (size_t i = 0; i < screen_data_size; i += sizeof(float)) {
-      float d = *(float *)(internalBuffer + i);
-      float xPos = i * delta / sizeof(d);
-      float yPos = (d - yMin) / (yMax - yMin) * screenHeight;
-      yPos = screenHeight - yPos;
-      DrawCircle(xPos, yPos, 2, DARKBLUE);
-    }
+    renderFunc(internalBuffer, screen_data_size / sizeof(float), delta,
+               screenWidth, screenHeight, yMin, yMax);
 
     EndDrawing();
   }
@@ -171,4 +187,51 @@ char const *get_port_from_argv(int argc, char *argv[],
     break;
   }
   return port;
+}
+
+void renderByPoints(float const *const data, size_t const dataLenght,
+                    float const deltaX, int const screenWidth,
+                    int const screenHeight, int const yMin, int const yMax) {
+  for (size_t i = 0; i < dataLenght; i++) {
+    float d = data[i];
+    float xPos = i * deltaX;
+    float yPos = (d - yMin) / (yMax - yMin) * screenHeight;
+    yPos = screenHeight - yPos;
+    DrawCircle(xPos, yPos, 2, DARKBLUE);
+  }
+  return;
+}
+
+void renderByLines(float const *const data, size_t const dataLenght,
+                   float const deltaX, int const screenWidth,
+                   int const screenHeight, int const yMin, int const yMax) {
+  Vector2 points[dataLenght];
+  for (size_t i = 0; i < dataLenght; i++) {
+    float d = data[i];
+    points[i] = (Vector2){.x = i * deltaX,
+                          .y = screenHeight * (1 - (d - yMin) / (yMax - yMin))};
+  }
+  DrawLineStrip(points, dataLenght, BLACK);
+  return;
+}
+
+void renderByLinesComplex(float const *const data, size_t const dataLenght,
+                          float const deltaX, int const screenWidth,
+                          int const screenHeight, int const yMin,
+                          int const yMax) {
+  Vector2 pointsReal[dataLenght / 2];
+  Vector2 pointsImag[dataLenght / 2];
+  for (size_t i = 0; i < dataLenght / 2; i++) {
+    float dReal = data[2 * i];
+    float dImag = data[2 * i + 1];
+    pointsReal[i] =
+        (Vector2){.x = 2 * i * deltaX,
+                  .y = screenHeight * (1 - (dReal - yMin) / (yMax - yMin))};
+    pointsImag[i] =
+        (Vector2){.x = (2 * i + 1) * deltaX,
+                  .y = screenHeight * (1 - (dImag - yMin) / (yMax - yMin))};
+  }
+  DrawLineStrip(pointsReal, dataLenght / 2, RED);
+  DrawLineStrip(pointsImag, dataLenght / 2, BLUE);
+  return;
 }

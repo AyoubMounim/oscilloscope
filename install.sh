@@ -4,11 +4,12 @@ PROGNAME=${0##*/}
 VERSION="0.1"
 LIBS=()  # Paths to external libraries.
 
-# Global variables here.
-BUILD_DIR="build"
+PREFIX=$(pwd)
 
 function set_up(){
-    [[ -d "$BUILD_DIR/bin" ]] || mkdir -p "$BUILD_DIR/bin"
+    if [[ ! -d "$PREFIX" ]]; then
+        mkdir -p "$PREFIX" || error_exit "Failed to create $PREFIX directory"
+    fi
     return 0
 }
 
@@ -62,13 +63,13 @@ function usage(){
 function print_help(){
     cat <<- EOF
 $PROGNAME
-"Build script"
+"Installation script."
 
 $(usage)
 
 Otions:
--h, --help              Display this help message.
--b, --build-dir <DIR>   Path to build directory (defaults to cwd/build).
+-h, --help          Display this help message.
+-p, --prefix <DIR>  Path to intall directory (defalts to cwd).
 
 EOF
     return 0
@@ -85,9 +86,10 @@ while [[ -n "$1" ]]; do
             print_help
             graceful_exit
             ;;
-        -b | --build-dir)
+        -p | --prefix)
             shift
-            BUILD_DIR="$1"
+            [[ -z "$1" ]] && error_exit "Options parsing error."
+            PREFIX="$1"
             ;;
         -* | --*)
             usage >&2
@@ -95,7 +97,7 @@ while [[ -n "$1" ]]; do
             ;;
         *)
             usage >&2
-            error_exit "Unknown arguments $1"
+            error_exit "Unknown argument $1"
             ;;
     esac
     shift
@@ -103,8 +105,8 @@ done
 
 set_up
 
-gcc -ggdb -I./buffer/include main.c ./buffer/src/io_buffer.c -lraylib -lm -o "$BUILD_DIR/bin/oscilloscope"
-go build -o "$BUILD_DIR/bin/signal-generator" signal_generator/signal_generator.go
+./build.sh -b "./build"
+cp -r ./build/bin "$PREFIX"
 
 graceful_exit
 

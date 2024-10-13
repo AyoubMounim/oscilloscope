@@ -1,12 +1,15 @@
 package main
 
-import "fmt"
-import "flag"
-import "math/rand"
-import "time"
-import "net"
-import "encoding/binary"
-import "math"
+import (
+	"encoding/binary"
+	"flag"
+	"fmt"
+	"math"
+	"math/rand"
+	"net"
+	"os"
+	"time"
+)
 
 func normalizeFreq(freq_Hz float64, sampleFreq_Hz float64) float64 {
 	_, normFreq := math.Modf(freq_Hz / sampleFreq_Hz)
@@ -56,6 +59,23 @@ func noise(time_seconds float64) float32 {
 	return res
 }
 
+func goldCodeGenerator() []float64 {
+	file, err := os.Open("./m_sequence.bin")
+	if err != nil {
+		panic(err)
+	}
+	goldCode := make([]float64, 2*255)
+	for i := range goldCode {
+		var s float32 = 0
+		err := binary.Read(file, binary.LittleEndian, &s)
+		if err != nil {
+			panic(err)
+		}
+		goldCode[i] = float64(s)
+	}
+	return goldCode
+}
+
 func random() float32 {
 	return rand.Float32()
 }
@@ -88,6 +108,14 @@ func main() {
 		numberGen = func(n int64) []float32 { return sineWave(normFreq, n) }
 	case "exp":
 		numberGen = func(n int64) []float32 { return expWave(normFreq, n) }
+	case "mSequence":
+		mSeq := goldCodeGenerator()
+		numberGen = func(n int64) []float32 {
+			res := make([]float32, 2)
+			res[0] = float32(mSeq[int(2*n)%len(mSeq)])
+			res[1] = float32(mSeq[int(2*n+1)%len(mSeq)])
+			return res
+		}
 	default:
 		numberGen = func(n int64) []float32 { return sineWave(normFreq, n) }
 	}
