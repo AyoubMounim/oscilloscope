@@ -24,6 +24,18 @@ func sineWave(normalizedFreq float64, n int64) []float32 {
 	return res
 }
 
+func squareWave(normalizedFreq float64, n int64) []float32 {
+	res := make([]float32, 1)
+	alpha := 2 * math.Pi * normalizedFreq * float64(n)
+	normalized_alpha := alpha - 2*math.Pi*(math.Floor(alpha/(2*math.Pi)))
+	if normalized_alpha <= math.Pi {
+		res[0] = 1
+	} else {
+		res[0] = -1
+	}
+	return res
+}
+
 func expWave(normalizedFreq float64, n int64) []float32 {
 	res := make([]float32, 2)
 	alpha := 2 * math.Pi * normalizedFreq * float64(n)
@@ -86,7 +98,7 @@ type noiseFunc func() float32
 func main() {
 	ipFlag := flag.String("ip", "127.0.0.1:6969", "target ip address in the format: x.x.x.x:port")
 	protoFlag := flag.String("proto", "tcp", "ip transport protocol to use: \"tcp\" or \"udp\"")
-	waveFlag := flag.String("wave", "sine", "Wave form: \"sine\" \"exp\"")
+	waveFlag := flag.String("wave", "sine", "Wave form: \"sine\" \"exp\" \"square\" \"mSequence\"")
 	freqFlag := flag.Float64("freq", 1, "Wave frequency in Hz")
 	noiseFlag := flag.Float64("noise", 0, "Noise level")
 	sampleFreqFlag := flag.Float64("sampleFreq", 100000, "Sample frequency in Hz")
@@ -106,6 +118,8 @@ func main() {
 	switch *waveFlag {
 	case "sine":
 		numberGen = func(n int64) []float32 { return sineWave(normFreq, n) }
+	case "square":
+		numberGen = func(n int64) []float32 { return squareWave(normFreq, n) }
 	case "exp":
 		numberGen = func(n int64) []float32 { return expWave(normFreq, n) }
 	case "mSequence":

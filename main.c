@@ -68,8 +68,8 @@ int main(int argc, char *argv[]) {
   int yMax = 1;
   int yMin = -1;
   // renderDataFunc_t renderFunc = (renderDataFunc_t)renderByPoints;
-  // renderDataFunc_t renderFunc = (renderDataFunc_t)renderByLines;
-  renderDataFunc_t renderFunc = (renderDataFunc_t)renderByLinesComplex;
+  renderDataFunc_t renderFunc = (renderDataFunc_t)renderByLines;
+  // renderDataFunc_t renderFunc = (renderDataFunc_t)renderByLinesComplex;
 
   SetTargetFPS(fps);
 
