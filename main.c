@@ -74,7 +74,6 @@ int main(int argc, char *argv[]) {
   SetTargetFPS(fps);
 
   float samplesPerWindow = MAX_SCREEN_DATA_SIZE / (2 * (float)sizeof(float));
-  int samplesPerWindowGuiValue = (int)samplesPerWindow;
   uint8_t internalBuffer[MAX_SCREEN_DATA_SIZE];
   memset(internalBuffer, 0, sizeof(internalBuffer));
   while (!WindowShouldClose()) // Detect window close button or ESC key
@@ -93,6 +92,7 @@ int main(int argc, char *argv[]) {
     GuiSlider((Rectangle){110, 40, 105, 20}, "SamplesPerWindow", NULL,
               &samplesPerWindow, 1,
               MAX_SCREEN_DATA_SIZE / (float)sizeof(float));
+    int samplesPerWindowGuiValue = (int)samplesPerWindow;
     GuiValueBox((Rectangle){220, 40, 50, 20}, NULL, &samplesPerWindowGuiValue,
                 1, MAX_SCREEN_DATA_SIZE / sizeof(float), false);
 
@@ -115,7 +115,7 @@ void *recvTask(void *args) {
   memset(&addrHints, 0, sizeof(addrHints));
   addrHints.ai_family = AF_INET;
   addrHints.ai_protocol = IPPROTO_UDP;
-  if (getaddrinfo(NULL, port, &addrHints, &addrInfo) != 0) {
+  if (getaddrinfo("0.0.0.0", port, &addrHints, &addrInfo) != 0) {
     assert(0 && "getaddrinfo failed");
   };
   struct addrinfo *addr;
@@ -129,12 +129,13 @@ void *recvTask(void *args) {
   }
   freeaddrinfo(addrInfo);
   assert(addr && "bind failed");
+  addr = NULL;
   printf("[UDP] - waiting for data on port %s\n", port);
-  size_t const internalBufferSize = 1024 * sizeof(float);
+  size_t const internalBufferSize = 32 * sizeof(float);
   uint8_t internalBuffer[internalBufferSize];
   while (true) {
     size_t read = recv(s, &internalBuffer, sizeof(internalBuffer), 0);
-    // printf("[UDP] - recv %d\n", ++c);
+    // printf("[UDP] - recv %lu bytes\n", read);
     assert(read % sizeof(float) == 0 && "receive failed");
     //    for (size_t i = 0; i < read; i += sizeof(float)) {
     //      *(uint32_t *)(internalBuffer + i) =
